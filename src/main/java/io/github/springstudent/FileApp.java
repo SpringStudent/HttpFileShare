@@ -26,8 +26,8 @@ public class FileApp {
 
     public FileApp() {
         mainWindow();
-        trayIcon();
         startHttp();
+        trayIcon();
     }
 
     private void mainWindow() {
@@ -59,26 +59,6 @@ public class FileApp {
         mainFrame.add(topPanel, BorderLayout.NORTH);
         mainFrame.add(scrollPane, BorderLayout.CENTER);
         mainFrame.setVisible(true);
-    }
-
-    private void share() {
-        JFileChooser fileChooser = new JFileChooser();
-        int result = fileChooser.showOpenDialog(mainFrame);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            String filePath = fileChooser.getSelectedFile().getAbsolutePath();
-            String fileId = MixUtils.randomString(10);
-            String url = fileHttpUrl(fileId);
-            FileRegistry.put(fileId, fileChooser.getSelectedFile());
-            tableModel.addRow(new Object[]{fileId, filePath, url, "cancel"});
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(url), null);
-            if (trayIcon != null) {
-                trayIcon.displayMessage(
-                        "share success",
-                        url,
-                        TrayIcon.MessageType.INFO
-                );
-            }
-        }
     }
 
     private String fileHttpUrl(String fileId) {
@@ -113,16 +93,35 @@ public class FileApp {
         } catch (AWTException e) {
             e.printStackTrace();
         }
-        trayIcon.displayMessage("HttpFileShare", "Share Your File Using Http", TrayIcon.MessageType.INFO);
+        trayIcon.displayMessage("HttpFileShare", String.format("Share Your File Using Http:\nIP=%s,PORT=%s", serverIp, serverPort), TrayIcon.MessageType.INFO);
+    }
+
+    private void share() {
+        JFileChooser fileChooser = new JFileChooser();
+        int result = fileChooser.showOpenDialog(mainFrame);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+            String fileId = MixUtils.randomString(6);
+            while (FileRegistry.contains(fileId)) {
+                fileId = MixUtils.randomString(6);
+            }
+            String url = fileHttpUrl(fileId);
+            FileRegistry.put(fileId, fileChooser.getSelectedFile());
+            tableModel.addRow(new Object[]{fileId, filePath, url, "cancel"});
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(url), null);
+            if (trayIcon != null) {
+                trayIcon.displayMessage("share success", url, TrayIcon.MessageType.INFO);
+            }
+        }
     }
 
     private void startHttp() {
         try {
-            serverIp = MixUtils.getLocalIP().getHostAddress();
+            serverIp = MixUtils.getIp().getHostAddress();
             serverPort = MixUtils.getPort();
             httpServer = HttpServer.create(new InetSocketAddress(serverIp, serverPort), 0);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new IllegalStateException("Failed to start HTTP server", e);
         }
         httpServer.createContext(contextPath, new FileHandler());
         httpServer.setExecutor(null);

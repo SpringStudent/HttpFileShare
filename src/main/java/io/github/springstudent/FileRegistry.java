@@ -21,4 +21,8 @@ public class FileRegistry {
     public static void del(String id) {
         fileMap.remove(id);
     }
+
+    public static boolean contains(String id) {
+        return fileMap.containsKey(id);
+    }
 }

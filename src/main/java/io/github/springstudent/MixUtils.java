@@ -1,8 +1,10 @@
 package io.github.springstudent;
 
+import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.net.ServerSocket;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -28,7 +30,7 @@ public class MixUtils {
         return sb.toString();
     }
 
-    public static InetAddress getLocalIP() throws Exception {
+    public static InetAddress getIp() throws Exception {
         for (NetworkInterface ni : java.util.Collections.list(NetworkInterface.getNetworkInterfaces())) {
             for (InetAddress addr : java.util.Collections.list(ni.getInetAddresses())) {
                 if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
@@ -40,6 +42,26 @@ public class MixUtils {
     }
 
     public static Integer getPort() {
-        return 8000;
+        Integer port = null;
+        if (System.getProperty("httpFileShare.port") != null) {
+            try {
+                port = Integer.parseInt(System.getProperty("httpFileShare.port"));
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid port number in system property 'httpFileShare.port'");
+            }
+        }
+        if (port != null) {
+            return port;
+        } else {
+            try (ServerSocket socket = new ServerSocket(0)) {
+                port = socket.getLocalPort();
+            } catch (IOException e) {
+                port = 54321;
+                System.err.println("Failed to get a free port");
+            }
+            return port;
+        }
+
     }
+
 }
