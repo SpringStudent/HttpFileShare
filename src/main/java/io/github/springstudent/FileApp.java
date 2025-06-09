@@ -3,6 +3,7 @@ package io.github.springstudent;
 import com.sun.net.httpserver.HttpServer;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
@@ -32,7 +33,7 @@ public class FileApp {
 
     private void mainWindow() {
         mainFrame = new JFrame("HttpFileShare");
-        mainFrame.setSize(800, 500);
+        mainFrame.setSize(900, 750);
         mainFrame.setLocationRelativeTo(null);
         mainFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         mainFrame.setLayout(new BorderLayout());
@@ -54,6 +55,25 @@ public class FileApp {
         table.setRowHeight(30);
         table.getColumn("operate").setCellRenderer(new ButtonRenderer());
         table.getColumn("operate").setCellEditor(new ButtonEditor(table, tableModel));
+        // 设置列宽
+        table.getColumnModel().getColumn(0).setPreferredWidth(50);
+        table.getColumnModel().getColumn(1).setPreferredWidth(300);
+        table.getColumnModel().getColumn(2).setPreferredWidth(250);
+        table.getColumnModel().getColumn(3).setPreferredWidth(150);
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (value != null) {
+                    setToolTipText(value.toString());
+                } else {
+                    setToolTipText(null);
+                }
+                return c;
+            }
+        });
         //表格容器
         JScrollPane scrollPane = new JScrollPane(table);
         mainFrame.add(topPanel, BorderLayout.NORTH);
