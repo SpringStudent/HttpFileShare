@@ -4,7 +4,7 @@
 
 For convenient file sharing , this project was created.
 
-* Share a local folder instantly via an HTTP address with just one click!
+* Share a local file instantly via an HTTP address with just one click!
 * No need to transfer files via FTP or WeChat servers.
 
 #### Parameters Explanation
