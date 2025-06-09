@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.nio.file.Files;
 
 /**
  * @author ZhouNing
@@ -31,7 +30,7 @@ public class FileHandler implements HttpHandler {
             exchange.sendResponseHeaders(404, -1);
             return;
         }
-        exchange.getResponseHeaders().add("Content-Type", Files.probeContentType(file.toPath()));
+        exchange.getResponseHeaders().add("Content-Type", "application/octet-stream");
         String fileName = URLEncoder.encode(file.getName(), "UTF-8").replaceAll("\\+", "%20");
         exchange.getResponseHeaders().add("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
         exchange.sendResponseHeaders(200, file.length());
