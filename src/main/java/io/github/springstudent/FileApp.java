@@ -145,7 +145,6 @@ public class FileApp {
                 FileRegistry.put(fileId, file);
                 tableModel.addRow(new Object[]{fileId, filePath, url, "cancel"});
                 lastUrl = url;
-                // 可选：一次性复制最后一个 URL，或汇总多个
             }
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(lastUrl), null);
             if (trayIcon != null && files.length > 0) {
