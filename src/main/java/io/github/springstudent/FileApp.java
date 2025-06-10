@@ -37,6 +37,8 @@ public class FileApp {
         mainFrame.setLocationRelativeTo(null);
         mainFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         mainFrame.setLayout(new BorderLayout());
+        mainFrame.setIconImage(Toolkit.getDefaultToolkit().getImage(FileApp.class.getResource("/program48.png")));
+
         //分享按钮
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton shareButton = new JButton("Share");
