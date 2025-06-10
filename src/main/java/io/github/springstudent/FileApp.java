@@ -9,6 +9,8 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.net.InetSocketAddress;
 
@@ -120,6 +122,12 @@ public class FileApp {
         popup.add(exitItem);
         trayIcon = new TrayIcon(image, "HttpFileShare", popup);
         trayIcon.setImageAutoSize(true);
+        trayIcon.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                SwingUtilities.invokeLater(() -> mainFrame.setVisible(true));
+            }
+        });
         try {
             tray.add(trayIcon);
         } catch (AWTException e) {
