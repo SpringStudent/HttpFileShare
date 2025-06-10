@@ -125,8 +125,10 @@ public class FileApp {
         trayIcon.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                SwingUtilities.invokeLater(() -> mainFrame.setVisible(true));
-            }
+                // 检查是否为鼠标左键点击
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    SwingUtilities.invokeLater(() -> mainFrame.setVisible(true));
+                }            }
         });
         try {
             tray.add(trayIcon);
