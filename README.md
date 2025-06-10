@@ -9,7 +9,8 @@ For convenient file sharing , this project was created.
 
 #### Compare
 
-Compared to Nginx and Python's http.server, the most significant differences are:The ability to share files from any directory without modifying configurations,File sharing and unsharing can be managed via a graphical interface.
+Compared to Nginx and Python's http.server, the key differences are:While those can only serve files from predefined directories, HttpFileShare allows sharing files from any directory without configuration changes or server restarts.
+It provides a graphical interface for easily sharing/unsharing files.
 
 #### Parameters Explanation
 
