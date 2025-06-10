@@ -25,7 +25,8 @@ public class FileApp {
     private String serverIp;
     private Integer serverPort;
 
-    public FileApp() {
+    public FileApp(Integer port) {
+        this.serverPort = port;
         mainWindow();
         startHttp();
         trayIcon();
@@ -141,7 +142,9 @@ public class FileApp {
     private void startHttp() {
         try {
             serverIp = MixUtils.getIp().getHostAddress();
-            serverPort = MixUtils.getPort();
+            if (serverPort == null || serverPort <= 0) {
+                serverPort = MixUtils.getPort();
+            }
             httpServer = HttpServer.create(new InetSocketAddress(serverIp, serverPort), 0);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to start HTTP server", e);
@@ -227,8 +230,15 @@ public class FileApp {
         }
     }
 
-
     public static void main(String[] args) {
-        new FileApp();
+        Integer port = null;
+        if (args.length > 0) {
+            try {
+                port = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid port argument, using default " + port);
+            }
+        }
+        new FileApp(port);
     }
 }
