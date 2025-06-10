@@ -9,6 +9,7 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
+import java.io.File;
 import java.net.InetSocketAddress;
 
 /**
@@ -47,6 +48,13 @@ public class FileApp {
             share();
         });
         topPanel.add(shareButton);
+        // Cancel All 按钮
+        JButton cancelAllButton = new JButton("cancel all");
+        cancelAllButton.addActionListener(e -> {
+            FileRegistry.clear();
+            tableModel.setRowCount(0);
+        });
+        topPanel.add(cancelAllButton);
         // 表格
         tableModel = new DefaultTableModel(new Object[]{"id", "file", "url", "operate"}, 0);
         table = new JTable(tableModel) {
@@ -122,19 +130,26 @@ public class FileApp {
 
     private void share() {
         JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setMultiSelectionEnabled(true); // 允许多选
         int result = fileChooser.showOpenDialog(mainFrame);
         if (result == JFileChooser.APPROVE_OPTION) {
-            String filePath = fileChooser.getSelectedFile().getAbsolutePath();
-            String fileId = MixUtils.randomString(6);
-            while (FileRegistry.contains(fileId)) {
-                fileId = MixUtils.randomString(6);
+            String lastUrl = null;
+            File[] files = fileChooser.getSelectedFiles();
+            for (File file : files) {
+                String filePath = file.getAbsolutePath();
+                String fileId = MixUtils.randomString(6);
+                while (FileRegistry.contains(fileId)) {
+                    fileId = MixUtils.randomString(6);
+                }
+                String url = fileHttpUrl(fileId);
+                FileRegistry.put(fileId, file);
+                tableModel.addRow(new Object[]{fileId, filePath, url, "cancel"});
+                lastUrl = url;
+                // 可选：一次性复制最后一个 URL，或汇总多个
             }
-            String url = fileHttpUrl(fileId);
-            FileRegistry.put(fileId, fileChooser.getSelectedFile());
-            tableModel.addRow(new Object[]{fileId, filePath, url, "cancel"});
-            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(url), null);
-            if (trayIcon != null) {
-                trayIcon.displayMessage("share success", url, TrayIcon.MessageType.INFO);
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(lastUrl), null);
+            if (trayIcon != null && files.length > 0) {
+                trayIcon.displayMessage("share success", files.length + " files shared", TrayIcon.MessageType.INFO);
             }
         }
     }
