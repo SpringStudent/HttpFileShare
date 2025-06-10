@@ -100,6 +100,7 @@ public class FileApp {
         MenuItem exitItem = new MenuItem("exit");
         exitItem.addActionListener(e -> {
             tray.remove(trayIcon);
+            stopHttp();
             System.exit(0);
         });
         popup.add(openItem);
@@ -146,6 +147,12 @@ public class FileApp {
         httpServer.createContext(contextPath, new FileHandler());
         httpServer.setExecutor(null);
         httpServer.start();
+    }
+
+    private void stopHttp() {
+        if (httpServer != null) {
+            httpServer.stop(0);
+        }
     }
 
     static class ButtonRenderer extends JPanel implements TableCellRenderer {
