@@ -270,6 +270,7 @@ public class FileApp {
                         }
                         break;
                     case "list":
+                        System.out.println("Current shared files:");
                         for (String id : FileRegistry.list()) {
                             FileInfo fileInfo = FileRegistry.get(id);
                             System.out.printf("id: %s\npath: %s\nurl: %s\ndownloadCnt: %d\n\n", id, fileInfo.getFile().getAbsolutePath(), fileHttpUrl(id), fileInfo.getDownloadCount());
