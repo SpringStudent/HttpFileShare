@@ -15,6 +15,7 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.InetSocketAddress;
+import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -72,10 +73,12 @@ public class FileApp {
         table = new JTable(tableModel) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 4;
+                return column == 3 || column == 4;
             }
         };
         table.setRowHeight(30);
+        table.getColumn("downloadCnt").setCellRenderer(new DownloadCountRenderer());
+        table.getColumn("downloadCnt").setCellEditor(new DownloadCountEditor());
         table.getColumn("operate").setCellRenderer(new ButtonRenderer());
         table.getColumn("operate").setCellEditor(new ButtonEditor());
         // 设置列宽
@@ -267,10 +270,34 @@ public class FileApp {
                         }
                         break;
                     case "list":
-                        System.out.println("Current shared files:");
                         for (String id : FileRegistry.list()) {
                             FileInfo fileInfo = FileRegistry.get(id);
                             System.out.printf("id: %s\npath: %s\nurl: %s\ndownloadCnt: %d\n\n", id, fileInfo.getFile().getAbsolutePath(), fileHttpUrl(id), fileInfo.getDownloadCount());
+                        }
+                        break;
+                    case "downloads":
+                        if (args.size() != 1) {
+                            System.out.println("Usage: downloads [fileId]");
+                            break;
+                        }
+                        String fileId = args.get(0);
+                        if (FileRegistry.contains(fileId)) {
+                            FileInfo fileInfo = FileRegistry.get(fileId);
+                            System.out.println("downloads:");
+                            System.out.printf("id: %s\npath: %s\nurl:%s\n", fileId, fileInfo.getFile().getAbsolutePath(), fileHttpUrl(fileId));
+                            Map<String, Integer> downloadMap = fileInfo.getDownloadMap();
+                            System.out.println("|---------------|------------|");
+                            System.out.println("|      ip       | downloadCnt|");
+                            if (downloadMap.isEmpty()) {
+                                System.out.printf(" %-15s   %-5s\n", "-", "-");
+
+                            } else {
+                                for (Map.Entry<String, Integer> entry : downloadMap.entrySet()) {
+                                    System.out.printf(" %-15s   %d\n", entry.getKey(), entry.getValue());
+                                }
+                            }
+                        } else {
+                            System.out.println("No such id: " + fileId);
                         }
                         break;
                     case "exit":
@@ -279,7 +306,7 @@ public class FileApp {
                         System.exit(0);
                         return;
                     case "help":
-                        System.out.println("Commands:\n  share [file1] [file2] ... - Share one or more files\n  cancel [id1] [id2] ...    - Cancel share(s) by fileId\n  cancel all                - Cancel all shared files\n  list                      - List shared files\n  exit                      - Quit program\n");
+                        System.out.println("Commands:\n  share [file1] [file2] ... - Share one or more files\n  cancel [id1] [id2] ...    - Cancel share(s) by fileId\n  cancel all                - Cancel all shared files\n  list                      - List shared files\n  downloads <fileId>        - View download statistics for the file\n  exit                      - Quit program\n");
                         break;
                     default:
                         System.out.println("Unknown command: " + cmd + " (type `help` for usage)");
@@ -331,7 +358,6 @@ public class FileApp {
         private final JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
         private final JButton cancelBtn = new JButton("cancel");
         private final JButton copyBtn = new JButton("copy");
-
         private final JButton qrBtn = new JButton("qrcode");
 
         public ButtonEditor() {
@@ -412,6 +438,81 @@ public class FileApp {
         @Override
         public Object getCellEditorValue() {
             return "";
+        }
+    }
+
+    private class DownloadCountRenderer extends JButton implements TableCellRenderer {
+        public DownloadCountRenderer() {
+            setBorderPainted(false);
+            setContentAreaFilled(false);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column) {
+            setText(value == null ? "" : value.toString());
+            setToolTipText("Click to view download info");
+            return this;
+        }
+    }
+
+    private class DownloadCountEditor extends AbstractCellEditor implements TableCellEditor {
+        private JButton button;
+        private int count;
+
+        public DownloadCountEditor() {
+            button = new JButton();
+            button.setBorderPainted(false);
+            button.setContentAreaFilled(false);
+            button.addActionListener(e -> {
+                int row = table.getEditingRow();
+                fireEditingStopped();
+                SwingUtilities.invokeLater(() -> {
+                    if (row >= 0 && row < table.getRowCount()) {
+                        String id = (String) tableModel.getValueAt(row, 0);
+                        FileInfo fileInfo = FileRegistry.get(id);
+                        JDialog dialog = new JDialog(mainFrame, "downloads", true);
+                        dialog.setSize(400, 300);
+                        dialog.setLocationRelativeTo(mainFrame);
+                        Map<String, Integer> data = fileInfo.getDownloadMap();
+                        String[] columnNames = {"ip", "downloadCnt"};
+                        Object[][] rowData = new Object[data.size()][2];
+                        int i = 0;
+                        for (Map.Entry<String, Integer> entry : data.entrySet()) {
+                            rowData[i][0] = entry.getKey();
+                            rowData[i][1] = entry.getValue();
+                            i++;
+                        }
+                        JTable table = new JTable(rowData, columnNames);
+                        table.setRowHeight(25);
+                        table.getTableHeader().setReorderingAllowed(false);
+                        ((DefaultTableCellRenderer) table.getTableHeader().getDefaultRenderer())
+                                .setHorizontalAlignment(SwingConstants.CENTER);
+                        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+                        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+                        table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+                        table.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
+                        JScrollPane scrollPane = new JScrollPane(table);
+                        dialog.add(scrollPane);
+                        dialog.setVisible(true);
+                    }
+                });
+                fireEditingStopped();
+            });
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value,
+                                                     boolean isSelected, int row, int column) {
+            count = Integer.parseInt(value.toString());
+            button.setText(value.toString());
+            return button;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return count;
         }
     }
 

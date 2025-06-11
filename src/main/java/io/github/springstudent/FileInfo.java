@@ -1,6 +1,8 @@
 package io.github.springstudent;
 
 import java.io.File;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -9,10 +11,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  **/
 public class FileInfo {
     private final File file;
+    private Map<String, Integer> downloadMap;
     private final AtomicInteger downloadCount;
 
     public FileInfo(File file) {
         this.file = file;
+        downloadMap = new ConcurrentHashMap<>();
         this.downloadCount = new AtomicInteger(0);
     }
 
@@ -27,4 +31,13 @@ public class FileInfo {
     public int getDownloadCount() {
         return downloadCount.get();
     }
+
+    public void addDownloadMap(String ip) {
+        downloadMap.put(ip, downloadMap.getOrDefault(ip, 0) + 1);
+    }
+
+    public Map<String, Integer> getDownloadMap() {
+        return downloadMap;
+    }
+
 }

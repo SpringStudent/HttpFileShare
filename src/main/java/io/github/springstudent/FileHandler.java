@@ -23,6 +23,7 @@ public class FileHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+        String ip = exchange.getRemoteAddress().getAddress().getHostAddress();
         URI uri = exchange.getRequestURI();
         String[] parts = uri.getPath().split("/");
         if (parts.length != 3) {
@@ -47,6 +48,7 @@ public class FileHandler implements HttpHandler {
             }
         }
         fileInfo.addDownloadCount();
+        fileInfo.addDownloadMap(ip);
         if (downloadListener != null) {
             downloadListener.onDownload(id, fileInfo.getDownloadCount());
         }
