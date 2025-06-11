@@ -31,6 +31,7 @@ public class FileApp {
     private String serverIp;
     private Integer serverPort;
     private boolean headless;
+    private DownloadListener downloadListener;
 
     public FileApp() {
         this.serverIp = MixUtils.getIp();
@@ -39,6 +40,7 @@ public class FileApp {
         if (!headless) {
             mainWindow();
             trayIcon();
+            initListener();
         }
         startHttp();
         new Thread(this::consoleInputLoop, "httpFileShareCmd").start();
@@ -66,21 +68,22 @@ public class FileApp {
         });
         topPanel.add(cancelAllButton);
         // 表格
-        tableModel = new DefaultTableModel(new Object[]{"id", "path", "url", "operate"}, 0);
+        tableModel = new DefaultTableModel(new Object[]{"id", "path", "url", "downloadCnt", "operate"}, 0);
         table = new JTable(tableModel) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 3;
+                return column == 4;
             }
         };
         table.setRowHeight(30);
         table.getColumn("operate").setCellRenderer(new ButtonRenderer());
-        table.getColumn("operate").setCellEditor(new ButtonEditor(table, tableModel, mainFrame));
+        table.getColumn("operate").setCellEditor(new ButtonEditor());
         // 设置列宽
         table.getColumnModel().getColumn(0).setPreferredWidth(20);
-        table.getColumnModel().getColumn(1).setPreferredWidth(300);
-        table.getColumnModel().getColumn(2).setPreferredWidth(230);
-        table.getColumnModel().getColumn(3).setPreferredWidth(200);
+        table.getColumnModel().getColumn(1).setPreferredWidth(250);
+        table.getColumnModel().getColumn(2).setPreferredWidth(200);
+        table.getColumnModel().getColumn(3).setPreferredWidth(80);
+        table.getColumnModel().getColumn(4).setPreferredWidth(200);
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -163,7 +166,7 @@ public class FileApp {
                 }
                 String url = fileHttpUrl(fileId);
                 FileRegistry.put(fileId, file);
-                tableModel.addRow(new Object[]{fileId, filePath, url, "cancel"});
+                tableModel.addRow(new Object[]{fileId, filePath, url, 0});
                 lastUrl = url;
             }
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(lastUrl), null);
@@ -173,13 +176,25 @@ public class FileApp {
         }
     }
 
+    private void initListener() {
+        downloadListener = (fileId, newCount) -> SwingUtilities.invokeLater(() -> {
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                String rowId = (String) tableModel.getValueAt(i, 0);
+                if (fileId.equals(rowId)) {
+                    tableModel.setValueAt(newCount, i, 3);
+                    break;
+                }
+            }
+        });
+    }
+
     private void startHttp() {
         try {
             httpServer = HttpServer.create(new InetSocketAddress(serverIp, serverPort), 0);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to start HTTP server", e);
         }
-        httpServer.createContext(contextPath, new FileHandler());
+        httpServer.createContext(contextPath, new FileHandler(downloadListener));
         httpServer.setExecutor(null);
         httpServer.start();
     }
@@ -190,7 +205,102 @@ public class FileApp {
         }
     }
 
-    static class ButtonRenderer extends JPanel implements TableCellRenderer {
+    private void consoleInputLoop() {
+        try (Scanner scanner = new Scanner(System.in)) {
+            System.out.println("Console command mode ready. Type `help` for usage.");
+            while (true) {
+                System.out.print("> ");
+                String line = scanner.nextLine().trim();
+                if (line.isEmpty()) continue;
+                java.util.List<String> tokens = MixUtils.parseCmdArgs(line);
+                if (tokens.isEmpty()) continue;
+                String cmd = tokens.get(0).toLowerCase();
+                java.util.List<String> args = tokens.subList(1, tokens.size());
+                switch (cmd) {
+                    case "share":
+                        if (args.isEmpty()) {
+                            System.out.println("Usage: share [file1] [file2] ...");
+                            break;
+                        }
+                        for (String path : args) {
+                            File file = new File(path);
+                            if (!file.exists() || !file.isFile()) {
+                                System.out.println("Invalid file: " + path);
+                                continue;
+                            }
+                            String fileId = MixUtils.randomString(6);
+                            while (FileRegistry.contains(fileId)) fileId = MixUtils.randomString(6);
+                            FileRegistry.put(fileId, file);
+                            String url = fileHttpUrl(fileId);
+                            if (!headless) {
+                                String finalFileId = fileId;
+                                SwingUtilities.invokeLater(() ->
+                                        tableModel.addRow(new Object[]{finalFileId, file.getAbsolutePath(), url, 0}));
+                            }
+                            System.out.println("id: " + fileId);
+                            System.out.println("path: " + file.getAbsolutePath());
+                            System.out.println("url: " + url);
+                        }
+                        break;
+                    case "cancel":
+                        if (args.size() == 1 && "all".equalsIgnoreCase(args.get(0))) {
+                            FileRegistry.clear();
+                            if (!headless) SwingUtilities.invokeLater(() -> tableModel.setRowCount(0));
+                            System.out.println("All shares canceled.");
+                            break;
+                        }
+                        if (args.isEmpty()) {
+                            System.out.println("Usage: cancel [fileId1] [fileId2] ... or cancel all");
+                            break;
+                        }
+                        for (String id : args) {
+                            if (FileRegistry.contains(id)) {
+                                FileRegistry.del(id);
+                                if (!headless) {
+                                    String finalId = id;
+                                    SwingUtilities.invokeLater(() -> removeRowById(finalId));
+                                }
+                                System.out.println("Canceled: " + id);
+                            } else {
+                                System.out.println("No such id: " + id);
+                            }
+                        }
+                        break;
+                    case "list":
+                        System.out.println("Current shared files:");
+                        for (String id : FileRegistry.list()) {
+                            FileInfo fileInfo = FileRegistry.get(id);
+                            System.out.printf("id: %s\npath: %s\nurl: %s\ndownloadCnt: %d\n\n", id, fileInfo.getFile().getAbsolutePath(), fileHttpUrl(id), fileInfo.getDownloadCount());
+                        }
+                        break;
+                    case "exit":
+                        System.out.println("Shutting down...");
+                        stopHttp();
+                        System.exit(0);
+                        return;
+                    case "help":
+                        System.out.println("Commands:\n  share [file1] [file2] ... - Share one or more files\n  cancel [id1] [id2] ...    - Cancel share(s) by fileId\n  cancel all                - Cancel all shared files\n  list                      - List shared files\n  exit                      - Quit program\n");
+                        break;
+                    default:
+                        System.out.println("Unknown command: " + cmd + " (type `help` for usage)");
+                        break;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void removeRowById(String id) {
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            if (id.equals(tableModel.getValueAt(i, 0))) {
+                tableModel.removeRow(i);
+                break;
+            }
+        }
+    }
+
+    private class ButtonRenderer extends JPanel implements TableCellRenderer {
         private final JButton cancelBtn = new JButton("cancel");
         private final JButton copyBtn = new JButton("copy");
 
@@ -217,21 +327,14 @@ public class FileApp {
         }
     }
 
-    static class ButtonEditor extends AbstractCellEditor implements TableCellEditor {
+    private class ButtonEditor extends AbstractCellEditor implements TableCellEditor {
         private final JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
         private final JButton cancelBtn = new JButton("cancel");
         private final JButton copyBtn = new JButton("copy");
 
         private final JButton qrBtn = new JButton("qrcode");
-        private JFrame mainFrame;
 
-        private JTable table;
-        private DefaultTableModel model;
-
-        public ButtonEditor(JTable table, DefaultTableModel model, JFrame mainFrame) {
-            this.table = table;
-            this.model = model;
-            this.mainFrame = mainFrame;
+        public ButtonEditor() {
             panel.add(cancelBtn);
             panel.add(copyBtn);
             panel.add(qrBtn);
@@ -242,7 +345,7 @@ public class FileApp {
                 fireEditingStopped();
                 SwingUtilities.invokeLater(() -> {
                     if (row >= 0 && row < table.getRowCount()) {
-                        String id = (String) model.getValueAt(row, 0);
+                        String id = (String) tableModel.getValueAt(row, 0);
                         FileRegistry.del(id);
                         ((DefaultTableModel) table.getModel()).removeRow(row);
                     }
@@ -252,7 +355,7 @@ public class FileApp {
             copyBtn.addActionListener(e -> {
                 int row = table.getEditingRow();
                 if (row >= 0) {
-                    String url = (String) model.getValueAt(row, 2);
+                    String url = (String) tableModel.getValueAt(row, 2);
                     Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(url), null);
                     JOptionPane.showMessageDialog(table, "copy success:\n" + url);
                 }
@@ -265,7 +368,7 @@ public class FileApp {
                     try {
                         // 生成二维码图片
                         int size = 300;
-                        BufferedImage image = MixUtils.qrCode((String) model.getValueAt(row, 2));
+                        BufferedImage image = MixUtils.qrCode((String) tableModel.getValueAt(row, 2));
                         // UI 组件构建
                         JLabel qrLabel = new JLabel(new ImageIcon(image));
                         JButton downloadButton = new JButton("Download");
@@ -309,101 +412,6 @@ public class FileApp {
         @Override
         public Object getCellEditorValue() {
             return "";
-        }
-    }
-
-    private void consoleInputLoop() {
-        try (Scanner scanner = new Scanner(System.in)) {
-            System.out.println("Console command mode ready. Type `help` for usage.");
-            while (true) {
-                System.out.print("> ");
-                String line = scanner.nextLine().trim();
-                if (line.isEmpty()) continue;
-                java.util.List<String> tokens = MixUtils.parseCmdArgs(line);
-                if (tokens.isEmpty()) continue;
-                String cmd = tokens.get(0).toLowerCase();
-                java.util.List<String> args = tokens.subList(1, tokens.size());
-                switch (cmd) {
-                    case "share":
-                        if (args.isEmpty()) {
-                            System.out.println("Usage: share [file1] [file2] ...");
-                            break;
-                        }
-                        for (String path : args) {
-                            File file = new File(path);
-                            if (!file.exists() || !file.isFile()) {
-                                System.out.println("Invalid file: " + path);
-                                continue;
-                            }
-                            String fileId = MixUtils.randomString(6);
-                            while (FileRegistry.contains(fileId)) fileId = MixUtils.randomString(6);
-                            FileRegistry.put(fileId, file);
-                            String url = fileHttpUrl(fileId);
-                            if (!headless) {
-                                String finalFileId = fileId;
-                                SwingUtilities.invokeLater(() ->
-                                        tableModel.addRow(new Object[]{finalFileId, file.getAbsolutePath(), url, "cancel"}));
-                            }
-                            System.out.println("id: " + fileId);
-                            System.out.println("path: " + file.getAbsolutePath());
-                            System.out.println("url: " + url);
-                        }
-                        break;
-                    case "cancel":
-                        if (args.size() == 1 && "all".equalsIgnoreCase(args.get(0))) {
-                            FileRegistry.clear();
-                            if (!headless) SwingUtilities.invokeLater(() -> tableModel.setRowCount(0));
-                            System.out.println("All shares canceled.");
-                            break;
-                        }
-                        if (args.isEmpty()) {
-                            System.out.println("Usage: cancel [fileId1] [fileId2] ... or cancel all");
-                            break;
-                        }
-                        for (String id : args) {
-                            if (FileRegistry.contains(id)) {
-                                FileRegistry.del(id);
-                                if (!headless) {
-                                    String finalId = id;
-                                    SwingUtilities.invokeLater(() -> removeRowById(finalId));
-                                }
-                                System.out.println("Canceled: " + id);
-                            } else {
-                                System.out.println("No such id: " + id);
-                            }
-                        }
-                        break;
-                    case "list":
-                        System.out.println("Current shared files:");
-                        for (String id : FileRegistry.list()) {
-                            File f = FileRegistry.get(id);
-                            System.out.printf("id: %s\npath: %s\nurl: %s\n\n", id, f.getAbsolutePath(), fileHttpUrl(id));
-                        }
-                        break;
-                    case "exit":
-                        System.out.println("Shutting down...");
-                        stopHttp();
-                        System.exit(0);
-                        return;
-                    case "help":
-                        System.out.println("Commands:\n  share [file1] [file2] ... - Share one or more files\n  cancel [id1] [id2] ...    - Cancel share(s) by fileId\n  cancel all                - Cancel all shared files\n  list                      - List shared files\n  exit                      - Quit program\n");
-                        break;
-                    default:
-                        System.out.println("Unknown command: " + cmd + " (type `help` for usage)");
-                        break;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void removeRowById(String id) {
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            if (id.equals(tableModel.getValueAt(i, 0))) {
-                tableModel.removeRow(i);
-                break;
-            }
         }
     }
 
