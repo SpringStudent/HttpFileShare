@@ -2,12 +2,12 @@
 
 #### Purpose
 
-For convenient file sharing , this project was created.
+This project was born out of the need for convenient file sharing within local networks.
 
 * Convenient:Share a local file instantly via an HTTP address with just one click!
 * Safe:No need to transfer files via FTP or WeChat servers.
-* Collaboration:Support downloading files via QR code
-* CommandLine:Support cmd to share/cancel/list files,Compatible with headless systems (no GUI environments)
+* Collaboration:Support downloading files via QR code.
+* CommandLine:Support cmd to share/cancel/list files,Compatible with headless systems (no GUI environments).
 
 #### Compare
 
