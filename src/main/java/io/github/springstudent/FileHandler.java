@@ -47,7 +47,7 @@ public class FileHandler implements HttpHandler {
             }
         }
         fileInfo.addDownloadCount();
-        if(downloadListener != null) {
+        if (downloadListener != null) {
             downloadListener.onDownload(id, fileInfo.getDownloadCount());
         }
     }
