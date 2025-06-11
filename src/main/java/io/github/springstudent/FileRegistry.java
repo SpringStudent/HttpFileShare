@@ -1,8 +1,7 @@
 package io.github.springstudent;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -10,7 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @date 2025/6/9 14:39
  **/
 public class FileRegistry {
-    private static final ConcurrentHashMap<String, File> fileMap = new ConcurrentHashMap<>();
+
+    private static final Map<String,File> fileMap = Collections.synchronizedMap(new LinkedHashMap<>());
 
     public static void put(String id, File file) {
         fileMap.put(id, file);

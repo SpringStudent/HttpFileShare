@@ -41,7 +41,7 @@ public class FileApp {
             trayIcon();
         }
         startHttp();
-        new Thread(this::consoleInputLoop, "cmd-line-handler").start();
+        new Thread(this::consoleInputLoop, "httpFileShareCmd").start();
     }
 
     private void mainWindow() {
