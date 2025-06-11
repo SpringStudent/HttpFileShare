@@ -15,6 +15,7 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.InetSocketAddress;
+import java.util.Scanner;
 
 /**
  * @author ZhouNing
@@ -35,6 +36,7 @@ public class FileApp {
         mainWindow();
         startHttp();
         trayIcon();
+        new Thread(this::consoleInputLoop, "cmd-line-handler").start();
     }
 
     private void mainWindow() {
@@ -310,6 +312,120 @@ public class FileApp {
         }
     }
 
+    private void consoleInputLoop() {
+        try (Scanner scanner = new Scanner(System.in)) {
+            System.out.println("Console command mode ready. Type `help` for usage.");
+            while (true) {
+                System.out.print("> ");
+                String line = scanner.nextLine().trim();
+                if (line.isEmpty()) continue;
+
+                // 解析带引号参数，示例方法稍后给出
+                java.util.List<String> tokens = MixUtils.parseCmdArgs(line);
+                if (tokens.isEmpty()) continue;
+
+                String cmd = tokens.get(0).toLowerCase();
+                java.util.List<String> args = tokens.subList(1, tokens.size());
+
+                switch (cmd) {
+                    case "share":
+                        if (args.isEmpty()) {
+                            System.out.println("Usage: share [file1] [file2] ...");
+                            break;
+                        }
+                        for (String path : args) {
+                            File file = new File(path);
+                            if (!file.exists() || !file.isFile()) {
+                                System.out.println("Invalid file: " + path);
+                                continue;
+                            }
+                            String fileId = MixUtils.randomString(6);
+                            while (FileRegistry.contains(fileId)) {
+                                fileId = MixUtils.randomString(6);
+                            }
+                            FileRegistry.put(fileId, file);
+                            String url = fileHttpUrl(fileId);
+                            String finalFileId = fileId;
+                            SwingUtilities.invokeLater(() ->
+                                    tableModel.addRow(new Object[]{finalFileId, file.getAbsolutePath(), url, "cancel"})
+                            );
+                            System.out.println("id: " + fileId);
+                            System.out.println("path: " + file.getAbsolutePath());
+                            System.out.println("url: " + url);
+                        }
+                        break;
+
+                    case "cancel":
+                        if (args.size() == 1 && "all".equalsIgnoreCase(args.get(0))) {
+                            FileRegistry.clear();
+                            SwingUtilities.invokeLater(() -> tableModel.setRowCount(0));
+                            System.out.println("All shares canceled.");
+                            break;
+                        }
+                        if (args.isEmpty()) {
+                            System.out.println("Usage: cancel [fileId1] [fileId2] ... or cancel all");
+                            break;
+                        }
+                        for (String id : args) {
+                            if (FileRegistry.contains(id)) {
+                                FileRegistry.del(id);
+                                SwingUtilities.invokeLater(() -> removeRowById(id));
+                                System.out.println("Canceled: " + id);
+                            } else {
+                                System.out.println("No such id: " + id);
+                            }
+                        }
+                        break;
+
+                    case "list":
+                        System.out.println("Current shared files:");
+                        for (String id : FileRegistry.list()) {
+                            File f = FileRegistry.get(id);
+                            System.out.printf("id: %s\npath: %s\nurl: %s\n\n",
+                                    id, f.getAbsolutePath(), fileHttpUrl(id));
+                        }
+                        break;
+
+                    case "exit":
+                        System.out.println("Shutting down...");
+                        try {
+                            stopHttp();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        System.exit(0);
+                        return;
+
+                    case "help":
+                        System.out.println(
+                                "Commands:\n" +
+                                        "  share [file1] [file2] ... - Share one or more files\n" +
+                                        "  cancel [id1] [id2] ...    - Cancel share(s) by fileId\n" +
+                                        "  cancel all                - Cancel all shared files\n" +
+                                        "  list                      - List shared files\n" +
+                                        "  exit                      - Quit program\n"
+                        );
+                        break;
+
+                    default:
+                        System.out.println("Unknown command: " + cmd + " (type `help` for usage)");
+                        break;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void removeRowById(String id) {
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            if (id.equals(tableModel.getValueAt(i, 0))) {
+                tableModel.removeRow(i);
+                break;
+            }
+        }
+    }
+
     public static void main(String[] args) {
         Integer port = null;
         if (args.length > 0) {
@@ -320,5 +436,6 @@ public class FileApp {
             }
         }
         new FileApp(port);
+
     }
 }

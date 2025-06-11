@@ -1,6 +1,8 @@
 package io.github.springstudent;
 
 import java.io.File;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -12,6 +14,10 @@ public class FileRegistry {
 
     public static void put(String id, File file) {
         fileMap.put(id, file);
+    }
+
+    public static Collection<String> list(){
+        return fileMap.keySet();
     }
 
     public static File get(String id) {
