@@ -49,7 +49,7 @@ public class FileApp {
 
     private void mainWindow() {
         mainFrame = new JFrame("HttpFileShare");
-        mainFrame.setSize(900, 750);
+        mainFrame.setSize(900, 800);
         mainFrame.setLocationRelativeTo(null);
         mainFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         mainFrame.setLayout(new BorderLayout());
@@ -86,7 +86,7 @@ public class FileApp {
         table.getColumnModel().getColumn(1).setPreferredWidth(250);
         table.getColumnModel().getColumn(2).setPreferredWidth(200);
         table.getColumnModel().getColumn(3).setPreferredWidth(80);
-        table.getColumnModel().getColumn(4).setPreferredWidth(200);
+        table.getColumnModel().getColumn(4).setPreferredWidth(250);
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -468,7 +468,6 @@ public class FileApp {
             button.setContentAreaFilled(false);
             button.addActionListener(e -> {
                 int row = table.getEditingRow();
-                fireEditingStopped();
                 SwingUtilities.invokeLater(() -> {
                     if (row >= 0 && row < table.getRowCount()) {
                         String id = (String) tableModel.getValueAt(row, 0);
