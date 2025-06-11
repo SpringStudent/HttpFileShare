@@ -31,11 +31,17 @@ public class FileApp {
     private String serverIp;
     private Integer serverPort;
 
-    public FileApp(Integer port) {
-        this.serverPort = port;
-        mainWindow();
+    private boolean headless;
+
+    public FileApp() {
+        this.serverIp = MixUtils.getIp();
+        this.serverPort = MixUtils.getPort();
+        this.headless = GraphicsEnvironment.isHeadless();
+        if (!headless) {
+            mainWindow();
+            trayIcon();
+        }
         startHttp();
-        trayIcon();
         new Thread(this::consoleInputLoop, "cmd-line-handler").start();
     }
 
@@ -46,7 +52,6 @@ public class FileApp {
         mainFrame.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         mainFrame.setLayout(new BorderLayout());
         mainFrame.setIconImage(Toolkit.getDefaultToolkit().getImage(FileApp.class.getResource("/program48.png")));
-
         //分享按钮
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton shareButton = new JButton("share");
@@ -62,7 +67,7 @@ public class FileApp {
         });
         topPanel.add(cancelAllButton);
         // 表格
-        tableModel = new DefaultTableModel(new Object[]{"id", "file", "url", "operate"}, 0);
+        tableModel = new DefaultTableModel(new Object[]{"id", "path", "url", "operate"}, 0);
         table = new JTable(tableModel) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -99,7 +104,7 @@ public class FileApp {
     }
 
     private String fileHttpUrl(String fileId) {
-        return "http://" + serverIp + ":" + serverPort + contextPath + "/" + fileId;
+        return "http://" + serverIp + ":" + serverPort + "/" + contextPath + "/" + fileId;
     }
 
     private void trayIcon() {
@@ -110,8 +115,6 @@ public class FileApp {
         SystemTray tray = SystemTray.getSystemTray();
         Image image = Toolkit.getDefaultToolkit().getImage(FileApp.class.getResource("/icon.png"));
         PopupMenu popup = new PopupMenu();
-        MenuItem openItem = new MenuItem("main");
-        openItem.addActionListener(e -> SwingUtilities.invokeLater(() -> mainFrame.setVisible(true)));
         MenuItem shareItem = new MenuItem("share");
         shareItem.addActionListener(e -> SwingUtilities.invokeLater(this::share));
         MenuItem exitItem = new MenuItem("exit");
@@ -120,7 +123,6 @@ public class FileApp {
             stopHttp();
             System.exit(0);
         });
-        popup.add(openItem);
         popup.add(shareItem);
         popup.addSeparator();
         popup.add(exitItem);
@@ -144,6 +146,10 @@ public class FileApp {
     }
 
     private void share() {
+        if (headless) {
+            System.out.println("Cannot open file chooser in headless mode. Use command line: share [file1] [file2] ...");
+            return;
+        }
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setMultiSelectionEnabled(true); // 允许多选
         int result = fileChooser.showOpenDialog(mainFrame);
@@ -170,10 +176,6 @@ public class FileApp {
 
     private void startHttp() {
         try {
-            serverIp = MixUtils.getIp().getHostAddress();
-            if (serverPort == null || serverPort <= 0) {
-                serverPort = MixUtils.getPort();
-            }
             httpServer = HttpServer.create(new InetSocketAddress(serverIp, serverPort), 0);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to start HTTP server", e);
@@ -222,8 +224,7 @@ public class FileApp {
         private final JButton copyBtn = new JButton("share");
 
         private final JButton qrBtn = new JButton("qrcode");
-
-        private JFrame mainFrame = null;
+        private JFrame mainFrame;
 
         private JTable table;
         private DefaultTableModel model;
@@ -319,14 +320,10 @@ public class FileApp {
                 System.out.print("> ");
                 String line = scanner.nextLine().trim();
                 if (line.isEmpty()) continue;
-
-                // 解析带引号参数，示例方法稍后给出
                 java.util.List<String> tokens = MixUtils.parseCmdArgs(line);
                 if (tokens.isEmpty()) continue;
-
                 String cmd = tokens.get(0).toLowerCase();
                 java.util.List<String> args = tokens.subList(1, tokens.size());
-
                 switch (cmd) {
                     case "share":
                         if (args.isEmpty()) {
@@ -340,25 +337,23 @@ public class FileApp {
                                 continue;
                             }
                             String fileId = MixUtils.randomString(6);
-                            while (FileRegistry.contains(fileId)) {
-                                fileId = MixUtils.randomString(6);
-                            }
+                            while (FileRegistry.contains(fileId)) fileId = MixUtils.randomString(6);
                             FileRegistry.put(fileId, file);
                             String url = fileHttpUrl(fileId);
-                            String finalFileId = fileId;
-                            SwingUtilities.invokeLater(() ->
-                                    tableModel.addRow(new Object[]{finalFileId, file.getAbsolutePath(), url, "cancel"})
-                            );
+                            if (!headless) {
+                                String finalFileId = fileId;
+                                SwingUtilities.invokeLater(() ->
+                                        tableModel.addRow(new Object[]{finalFileId, file.getAbsolutePath(), url, "cancel"}));
+                            }
                             System.out.println("id: " + fileId);
                             System.out.println("path: " + file.getAbsolutePath());
                             System.out.println("url: " + url);
                         }
                         break;
-
                     case "cancel":
                         if (args.size() == 1 && "all".equalsIgnoreCase(args.get(0))) {
                             FileRegistry.clear();
-                            SwingUtilities.invokeLater(() -> tableModel.setRowCount(0));
+                            if (!headless) SwingUtilities.invokeLater(() -> tableModel.setRowCount(0));
                             System.out.println("All shares canceled.");
                             break;
                         }
@@ -369,44 +364,31 @@ public class FileApp {
                         for (String id : args) {
                             if (FileRegistry.contains(id)) {
                                 FileRegistry.del(id);
-                                SwingUtilities.invokeLater(() -> removeRowById(id));
+                                if (!headless) {
+                                    String finalId = id;
+                                    SwingUtilities.invokeLater(() -> removeRowById(finalId));
+                                }
                                 System.out.println("Canceled: " + id);
                             } else {
                                 System.out.println("No such id: " + id);
                             }
                         }
                         break;
-
                     case "list":
                         System.out.println("Current shared files:");
                         for (String id : FileRegistry.list()) {
                             File f = FileRegistry.get(id);
-                            System.out.printf("id: %s\npath: %s\nurl: %s\n\n",
-                                    id, f.getAbsolutePath(), fileHttpUrl(id));
+                            System.out.printf("id: %s\npath: %s\nurl: %s\n\n", id, f.getAbsolutePath(), fileHttpUrl(id));
                         }
                         break;
-
                     case "exit":
                         System.out.println("Shutting down...");
-                        try {
-                            stopHttp();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        stopHttp();
                         System.exit(0);
                         return;
-
                     case "help":
-                        System.out.println(
-                                "Commands:\n" +
-                                        "  share [file1] [file2] ... - Share one or more files\n" +
-                                        "  cancel [id1] [id2] ...    - Cancel share(s) by fileId\n" +
-                                        "  cancel all                - Cancel all shared files\n" +
-                                        "  list                      - List shared files\n" +
-                                        "  exit                      - Quit program\n"
-                        );
+                        System.out.println("Commands:\n  share [file1] [file2] ... - Share one or more files\n  cancel [id1] [id2] ...    - Cancel share(s) by fileId\n  cancel all                - Cancel all shared files\n  list                      - List shared files\n  exit                      - Quit program\n");
                         break;
-
                     default:
                         System.out.println("Unknown command: " + cmd + " (type `help` for usage)");
                         break;
@@ -427,15 +409,25 @@ public class FileApp {
     }
 
     public static void main(String[] args) {
+        String ip = null;
         Integer port = null;
         if (args.length > 0) {
+            ip = args[0];
+        }
+        if (args.length > 1) {
             try {
-                port = Integer.parseInt(args[0]);
+                port = Integer.parseInt(args[1]);
             } catch (NumberFormatException e) {
-                System.err.println("Invalid port argument, using default " + port);
+                System.err.println("Invalid port argument: " + args[1] + ", using default");
             }
         }
-        new FileApp(port);
-
+        if (ip != null) {
+            System.setProperty("httpFileShare.ip", ip);
+        }
+        if (port != null) {
+            System.setProperty("httpFileShare.port", port.toString());
+        }
+        new FileApp();
     }
+
 }

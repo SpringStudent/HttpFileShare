@@ -41,37 +41,44 @@ public class MixUtils {
         return sb.toString();
     }
 
-    public static InetAddress getIp() throws Exception {
-        for (NetworkInterface ni : java.util.Collections.list(NetworkInterface.getNetworkInterfaces())) {
-            for (InetAddress addr : java.util.Collections.list(ni.getInetAddresses())) {
-                if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
-                    return addr;
+    public static String getIp() {
+        try {
+            String ip = System.getProperty("httpFileShare.ip");
+            if (ip != null && !ip.isEmpty()) {
+                return ip;
+            }
+            for (NetworkInterface ni : java.util.Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (!ni.isUp() || ni.isLoopback() || ni.isVirtual()) continue;
+                for (InetAddress addr : java.util.Collections.list(ni.getInetAddresses())) {
+                    if (!addr.isLoopbackAddress() && addr instanceof Inet4Address) {
+                        return addr.getHostAddress();
+                    }
                 }
             }
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception e) {
+            System.err.println("Failed to get a free ip address: " + e.getMessage());
+            return "0.0.0.0";
         }
-        return InetAddress.getLocalHost();
     }
 
+
     public static Integer getPort() {
-        Integer port = null;
         if (System.getProperty("httpFileShare.port") != null) {
             try {
-                port = Integer.parseInt(System.getProperty("httpFileShare.port"));
+                return Integer.parseInt(System.getProperty("httpFileShare.port"));
             } catch (NumberFormatException e) {
                 System.err.println("Invalid port number in system property 'httpFileShare.port'");
             }
         }
-        if (port != null) {
-            return port;
-        } else {
-            try (ServerSocket socket = new ServerSocket(0)) {
-                port = socket.getLocalPort();
-            } catch (IOException e) {
-                port = 54321;
-                System.err.println("Failed to get a free port");
-            }
-            return port;
+        Integer port = null;
+        try (ServerSocket socket = new ServerSocket(0)) {
+            port = socket.getLocalPort();
+        } catch (IOException e) {
+            port = 54321;
+            System.err.println("Failed to get a free port");
         }
+        return port;
 
     }
 

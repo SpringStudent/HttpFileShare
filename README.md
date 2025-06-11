@@ -19,6 +19,7 @@ It provides a graphical interface for easily sharing/unsharing files.
 | Parameter                  | Explanation                                                                                               |
 |----------------------------|-----------------------------------------------------------------------------------------------------------|
 | -DhttpFileShare.port=11111 | Specify the HTTP server port. If not specified, the system will randomly select an available unused port. |
+| -DhttpFileShare.ip=172.16.1.37 | Specify the IP address for the HTTP server, typically used for computers with multiple network interfaces.|
 
 #### Demonstration Video
 
