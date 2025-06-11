@@ -220,7 +220,7 @@ public class FileApp {
     static class ButtonEditor extends AbstractCellEditor implements TableCellEditor {
         private final JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
         private final JButton cancelBtn = new JButton("cancel");
-        private final JButton copyBtn = new JButton("share");
+        private final JButton copyBtn = new JButton("copy");
 
         private final JButton qrBtn = new JButton("qrcode");
         private JFrame mainFrame;
