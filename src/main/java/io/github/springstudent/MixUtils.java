@@ -1,12 +1,17 @@
 package io.github.springstudent;
 
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.util.concurrent.ThreadLocalRandom;
-
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
 /**
  * @author ZhouNing
  * @date 2025/6/9 16:46
@@ -62,6 +67,14 @@ public class MixUtils {
             return port;
         }
 
+    }
+
+    public static BufferedImage qrCode(String url) throws WriterException {
+        // 生成二维码图片
+        int size = 300;
+        BitMatrix bitMatrix = new MultiFormatWriter().encode(url, BarcodeFormat.QR_CODE, size, size);
+        BufferedImage image = MatrixToImageWriter.toBufferedImage(bitMatrix);
+        return image;
     }
 
 }

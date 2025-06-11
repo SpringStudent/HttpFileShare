@@ -2,6 +2,7 @@ package io.github.springstudent;
 
 import com.sun.net.httpserver.HttpServer;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -11,6 +12,7 @@ import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.InetSocketAddress;
 
@@ -45,7 +47,7 @@ public class FileApp {
 
         //分享按钮
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        JButton shareButton = new JButton("Share");
+        JButton shareButton = new JButton("share");
         shareButton.addActionListener(e -> {
             share();
         });
@@ -67,12 +69,12 @@ public class FileApp {
         };
         table.setRowHeight(30);
         table.getColumn("operate").setCellRenderer(new ButtonRenderer());
-        table.getColumn("operate").setCellEditor(new ButtonEditor(table, tableModel));
+        table.getColumn("operate").setCellEditor(new ButtonEditor(table, tableModel, mainFrame));
         // 设置列宽
-        table.getColumnModel().getColumn(0).setPreferredWidth(50);
+        table.getColumnModel().getColumn(0).setPreferredWidth(20);
         table.getColumnModel().getColumn(1).setPreferredWidth(300);
-        table.getColumnModel().getColumn(2).setPreferredWidth(250);
-        table.getColumnModel().getColumn(3).setPreferredWidth(150);
+        table.getColumnModel().getColumn(2).setPreferredWidth(230);
+        table.getColumnModel().getColumn(3).setPreferredWidth(200);
         table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -128,7 +130,8 @@ public class FileApp {
                 // 检查是否为鼠标左键点击
                 if (e.getButton() == MouseEvent.BUTTON1) {
                     SwingUtilities.invokeLater(() -> mainFrame.setVisible(true));
-                }            }
+                }
+            }
         });
         try {
             tray.add(trayIcon);
@@ -188,12 +191,16 @@ public class FileApp {
         private final JButton cancelBtn = new JButton("cancel");
         private final JButton copyBtn = new JButton("copy");
 
+        private final JButton qrBtn = new JButton("qrcode");
+
         public ButtonRenderer() {
             setLayout(new FlowLayout(FlowLayout.CENTER, 5, 0));
             cancelBtn.setFocusable(false);
             copyBtn.setFocusable(false);
+            qrBtn.setFocusable(false);
             add(cancelBtn);
             add(copyBtn);
+            add(qrBtn);
         }
 
         @Override
@@ -211,14 +218,22 @@ public class FileApp {
         private final JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
         private final JButton cancelBtn = new JButton("cancel");
         private final JButton copyBtn = new JButton("share");
+
+        private final JButton qrBtn = new JButton("qrcode");
+
+        private JFrame mainFrame = null;
+
         private JTable table;
         private DefaultTableModel model;
 
-        public ButtonEditor(JTable table, DefaultTableModel model) {
+        public ButtonEditor(JTable table, DefaultTableModel model, JFrame mainFrame) {
             this.table = table;
             this.model = model;
+            this.mainFrame = mainFrame;
             panel.add(cancelBtn);
             panel.add(copyBtn);
+            panel.add(qrBtn);
+
             // 取消分享按钮
             cancelBtn.addActionListener(e -> {
                 int row = table.getEditingRow();
@@ -238,6 +253,47 @@ public class FileApp {
                     String url = (String) model.getValueAt(row, 2);
                     Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(url), null);
                     JOptionPane.showMessageDialog(table, "copy success:\n" + url);
+                }
+                fireEditingStopped();
+            });
+            //二维码
+            qrBtn.addActionListener(e -> {
+                int row = table.getEditingRow();
+                if (row >= 0) {
+                    try {
+                        // 生成二维码图片
+                        int size = 300;
+                        BufferedImage image = MixUtils.qrCode((String) model.getValueAt(row, 2));
+                        // UI 组件构建
+                        JLabel qrLabel = new JLabel(new ImageIcon(image));
+                        JButton downloadButton = new JButton("Download");
+                        JDialog dialog = new JDialog(mainFrame, "QR Code", true);
+                        dialog.setLayout(new BorderLayout());
+                        dialog.add(qrLabel, BorderLayout.CENTER);
+                        dialog.add(downloadButton, BorderLayout.SOUTH);
+                        dialog.setSize(size + 50, size + 100);
+                        dialog.setLocationRelativeTo(mainFrame);
+
+                        downloadButton.addActionListener(ev -> {
+                            try {
+                                JFileChooser fileChooser = new JFileChooser();
+                                fileChooser.setSelectedFile(new File("qrcode.png"));
+                                int ret = fileChooser.showSaveDialog(dialog);
+                                if (ret == JFileChooser.APPROVE_OPTION) {
+                                    File outputFile = fileChooser.getSelectedFile();
+                                    ImageIO.write(image, "png", outputFile);
+                                    JOptionPane.showMessageDialog(dialog, "Saved to:\n" + outputFile.getAbsolutePath());
+                                }
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                                JOptionPane.showMessageDialog(dialog, "Failed to save QR code:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                            }
+                        });
+                        dialog.setVisible(true);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(mainFrame, "Failed to generate QR code:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    }
                 }
                 fireEditingStopped();
             });
