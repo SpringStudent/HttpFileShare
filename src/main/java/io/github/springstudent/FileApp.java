@@ -30,7 +30,6 @@ public class FileApp {
     private HttpServer httpServer;
     private String serverIp;
     private Integer serverPort;
-
     private boolean headless;
 
     public FileApp() {
@@ -104,7 +103,7 @@ public class FileApp {
     }
 
     private String fileHttpUrl(String fileId) {
-        return "http://" + serverIp + ":" + serverPort + "/" + contextPath + "/" + fileId;
+        return "http://" + serverIp + ":" + serverPort + contextPath + "/" + fileId;
     }
 
     private void trayIcon() {
