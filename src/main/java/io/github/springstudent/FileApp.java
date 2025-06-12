@@ -369,7 +369,6 @@ public class FileApp {
             // 取消分享按钮
             cancelBtn.addActionListener(e -> {
                 int row = table.getEditingRow();
-                fireEditingStopped();
                 SwingUtilities.invokeLater(() -> {
                     if (row >= 0 && row < table.getRowCount()) {
                         String id = (String) tableModel.getValueAt(row, 0);
@@ -377,6 +376,7 @@ public class FileApp {
                         ((DefaultTableModel) table.getModel()).removeRow(row);
                     }
                 });
+                fireEditingStopped();
             });
             // 复制URL按钮
             copyBtn.addActionListener(e -> {
