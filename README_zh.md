@@ -30,6 +30,16 @@
 
 ![HttpFileShare](help1.png)
 
+* 2.mac修改启动ip和端口
+
+找到HttpFileShare.app 编辑Contents/app/HttpFileShare.cfg 文件（如果有），或者创建它。 在其中添加 JVM 参数：
+```
+[JavaOptions]
+java-options=-Djpackage.app-version=1.0.0
+java-options=-DhttpFileShare.port=11111
+java-options=-DhttpFileShare.ip=172.16.1.37
+```
+
 #### 截图
 ![HttpFileShare](main_frame.png)
 ![HttpFileShare](main_frame2.png)

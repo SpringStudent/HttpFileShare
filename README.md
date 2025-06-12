@@ -31,6 +31,18 @@ It provides a graphical interface for easily sharing/unsharing files.
 
 ![HttpFileShare](help1.png)
 
+2. Modify Startup IP and Port on macOS
+
+Locate the HttpFileShare.app package and edit the Contents/app/HttpFileShare.cfg file (create it if it doesn’t exist).
+Add the following JVM parameters to the file:
+
+```
+[JavaOptions]
+java-options=-Djpackage.app-version=1.0.0
+java-options=-DhttpFileShare.port=11111
+java-options=-DhttpFileShare.ip=172.16.1.37
+```
+
 #### Screenshots
 ![HttpFileShare](main_frame.png)
 ![HttpFileShare](main_frame2.png)

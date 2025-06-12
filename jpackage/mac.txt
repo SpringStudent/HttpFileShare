@@ -1,0 +1,1 @@
+jpackage --input /Users/springstudent/Desktop/jar --icon /Users/springstudent/Desktop/jar/app.icns  --name HttpFileShare --main-class io.github.springstudent.FileApp --main-jar HttpFileShare.jar --type dmg --dest /Users/springstudent/Desktop/jar --app-version 1.0.0
