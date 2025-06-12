@@ -24,3 +24,10 @@ It provides a graphical interface for easily sharing/unsharing files.
 #### Demonstration Video
 
 [Bilibili Video](https://www.bilibili.com/video/BV1XHTezDEDC/)
+
+#### Screenshots
+![HttpFileShare](main_frame.png)
+![HttpFileShare](main_frame2.png)
+![HttpFileShare](main_frame3.png)
+![HttpFileShare](main_frame4.png)
+![HttpFileShare](main_frame5.png)

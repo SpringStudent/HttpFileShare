@@ -23,3 +23,10 @@
 #### 演示视频
 
 [Bilibili Video](https://www.bilibili.com/video/BV1XHTezDEDC/)
+
+#### 截图
+![HttpFileShare](main_frame.png)
+![HttpFileShare](main_frame2.png)
+![HttpFileShare](main_frame3.png)
+![HttpFileShare](main_frame4.png)
+![HttpFileShare](main_frame5.png)
