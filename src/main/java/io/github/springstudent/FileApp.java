@@ -307,7 +307,7 @@ public class FileApp {
                         System.exit(0);
                         return;
                     case "help":
-                        System.out.println("Commands:\n  share [file1] [file2] ... - Share one or more files\n  cancel [id1] [id2] ...    - Cancel share(s) by fileId\n  cancel all                - Cancel all shared files\n  list                      - List shared files\n  downloads <fileId>        - View download statistics for the file\n  exit                      - Quit program\n");
+                        System.out.println("Commands:\n  share [file1] [file2] ... - Share one or more files\n  cancel [id1] [id2] ...    - Cancel share(s) by fileId\n  cancel all                - Cancel all shared files\n  list                      - List shared files\n  downloads [fileId]        - View download statistics for the file\n  exit                      - Quit program\n");
                         break;
                     default:
                         System.out.println("Unknown command: " + cmd + " (type `help` for usage)");
