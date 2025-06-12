@@ -28,7 +28,8 @@ It provides a graphical interface for easily sharing/unsharing files.
 #### Q&A
 
 * 1.windows modify ip port
-  ![HttpFileShare](help1.png)
+
+![HttpFileShare](help1.png)
 
 #### Screenshots
 ![HttpFileShare](main_frame.png)

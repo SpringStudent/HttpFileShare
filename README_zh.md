@@ -27,7 +27,8 @@
 #### Q&A
 
 * 1.windows修改启动ip和端口
-  ![HttpFileShare](help1.png)
+
+![HttpFileShare](help1.png)
 
 #### 截图
 ![HttpFileShare](main_frame.png)
