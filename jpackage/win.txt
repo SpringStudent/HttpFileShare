@@ -1,0 +1,1 @@
+jpackage --input C:\Users\z2267\Desktop\jar --icon C:\Users\z2267\Desktop\jar\app.ico  --name HttpFileShare --main-class io.github.springstudent.FileApp --main-jar HttpFileShare.jar --type exe --win-shortcut --win-menu --dest C:\Users\z2267\Desktop\jar --app-version 0.1.0
