@@ -284,7 +284,7 @@ public class FileApp {
                         String fileId = args.get(0);
                         if (FileRegistry.contains(fileId)) {
                             FileInfo fileInfo = FileRegistry.get(fileId);
-                            System.out.println("downloads:");
+                            System.out.println("Download statistics:");
                             System.out.printf("id: %s\npath: %s\nurl:%s\n", fileId, fileInfo.getFile().getAbsolutePath(), fileHttpUrl(fileId));
                             Map<String, Integer> downloadMap = fileInfo.getDownloadMap();
                             System.out.println("|---------------|------------|");
