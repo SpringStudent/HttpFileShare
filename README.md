@@ -25,6 +25,11 @@ It provides a graphical interface for easily sharing/unsharing files.
 
 [Bilibili Video](https://www.bilibili.com/video/BV1XHTezDEDC/)
 
+#### Q&A
+
+* 1.windows modify ip port
+  ![HttpFileShare](help1.png)
+
 #### Screenshots
 ![HttpFileShare](main_frame.png)
 ![HttpFileShare](main_frame2.png)

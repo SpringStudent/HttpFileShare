@@ -24,6 +24,11 @@
 
 [Bilibili Video](https://www.bilibili.com/video/BV1XHTezDEDC/)
 
+#### Q&A
+
+* 1.windows修改启动ip和端口
+  ![HttpFileShare](help1.png)
+
 #### 截图
 ![HttpFileShare](main_frame.png)
 ![HttpFileShare](main_frame2.png)
